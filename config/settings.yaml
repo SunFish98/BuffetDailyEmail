@@ -1,0 +1,131 @@
+# ===========================================
+# BuffetDailyEmail Settings
+# ===========================================
+
+# Watchlist - Add/remove tickers as needed
+watchlist:
+  # Large Cap Tech
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - NVDA
+  - TSLA
+
+  # Financial
+  - BRK-B
+  - JPM
+  - V
+  - MA
+  - BAC
+  - GS
+
+  # Healthcare
+  - UNH
+  - JNJ
+  - PFE
+  - ABBV
+  - LLY
+
+  # Consumer
+  - KO
+  - PG
+  - WMT
+  - COST
+  - MCD
+  - NKE
+
+  # Industrial / Energy
+  - XOM
+  - CVX
+  - CAT
+  - UNP
+  - HON
+
+  # Other
+  - DIS
+  - NFLX
+  - CRM
+  - AMD
+  - INTC
+
+# Data collection settings
+data_collection:
+  # Primary data source: "yfinance" (free) or "alpha_vantage" or "polygon"
+  market_data_source: yfinance
+
+  # News sources (list, in priority order)
+  news_sources:
+    - google_rss      # Free, no API key
+    - finnhub         # Requires FINNHUB_API_KEY
+    - newsapi         # Requires NEWSAPI_KEY
+
+  # How many days of price history to include
+  price_history_days: 30
+
+  # How many news articles per ticker
+  max_news_per_ticker: 5
+
+  # Enable/disable data modules
+  enable_sec_filings: true
+  enable_insider_trading: true
+  enable_macro_indicators: true
+  enable_earnings: true
+
+# Analyst agent settings
+analysts:
+  # Claude model to use (overridden by CLAUDE_MODEL env var)
+  model: claude-sonnet-4-20250514
+
+  # Max tokens per analyst response
+  max_tokens: 4096
+
+  # Run analysts in parallel (faster) or sequential (cheaper, rate-limit friendly)
+  parallel: true
+
+  # Temperature for analyst responses (0.0 = deterministic, 1.0 = creative)
+  temperature: 0.3
+
+# Aggregator settings
+aggregator:
+  # Minimum analysts agreeing for "consensus" label
+  consensus_threshold: 3
+
+  # Weight multipliers for each analyst (optional, default 1.0)
+  weights:
+    warren_buffett: 1.0
+    charlie_munger: 1.0
+    george_soros: 1.0
+    peter_lynch: 1.0
+    ray_dalio: 1.0
+    carl_icahn: 1.0
+    benjamin_graham: 1.0
+
+# Email settings
+email:
+  # Subject line template (supports {date} placeholder)
+  subject: "Daily Investment Intelligence - {date}"
+
+  # Send even if no strong signals found
+  send_if_no_signals: true
+
+# Historical tracking
+history:
+  # SQLite database path
+  db_path: data/history.db
+
+  # Track accuracy of past recommendations
+  track_accuracy: true
+
+  # Days to look back for accuracy tracking
+  accuracy_lookback_days: 30
+
+# Scheduling (for reference - actual scheduling done externally)
+schedule:
+  # Run after market close (Eastern Time)
+  time: "17:00"
+  timezone: "US/Eastern"
+  # Only on trading days
+  skip_weekends: true
+  skip_holidays: true
