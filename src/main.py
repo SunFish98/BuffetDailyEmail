@@ -13,7 +13,7 @@ import yaml
 from dotenv import load_dotenv
 
 from .data_collector import DataCollector
-from .analysts import ALL_ANALYSTS
+from .analysts import ALL_ANALYSTS, get_enabled_analysts
 from .aggregator import Aggregator
 from .email_sender import EmailSender
 from .storage import HistoryTracker
@@ -40,13 +40,14 @@ def run_analyst(analyst_class, config: dict, market_briefing: str) -> dict:
 
 
 def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
-         save_report: bool = True):
+         save_report: bool = True, analysts_override: list[str] | None = None):
     """Main entry point for the daily analysis pipeline.
 
     Args:
         config_path: Path to the settings.yaml config file.
         skip_email: If True, skip sending the email (useful for testing).
         save_report: If True, save HTML/text reports to data/ directory.
+        analysts_override: If set, override config to enable only these analysts.
     """
     load_dotenv()
     start_time = time.time()
@@ -62,6 +63,10 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
 
     # Load config
     config = load_config(config_path)
+
+    # CLI --analysts override takes priority over config
+    if analysts_override:
+        config.setdefault("analysts", {})["enabled"] = analysts_override
     watchlist = config.get("watchlist", [])
     logger.info(f"Watchlist: {len(watchlist)} tickers")
 
@@ -85,12 +90,31 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
     parallel = analyst_config.get("parallel", True)
     analyst_results = []
 
+    # Select enabled analysts (subset or all)
+    enabled_analysts = get_enabled_analysts(config)
+    if not enabled_analysts:
+        logger.error("No analysts enabled. Check analysts.enabled in config.")
+        sys.exit(1)
+
+    skipped = len(ALL_ANALYSTS) - len(enabled_analysts)
+    if skipped > 0:
+        enabled_names = [cls.name for cls in enabled_analysts]
+        logger.info(f"Enabled {len(enabled_analysts)}/{len(ALL_ANALYSTS)} sages: {', '.join(enabled_names)}")
+
+        # Auto-adjust consensus threshold if fewer analysts are active
+        agg_config = config.get("aggregator", {})
+        threshold = agg_config.get("consensus_threshold", 3)
+        max_reasonable = max(2, (len(enabled_analysts) + 1) // 2)
+        if threshold > len(enabled_analysts):
+            agg_config["consensus_threshold"] = max_reasonable
+            logger.info(f"  Auto-adjusted consensus threshold: {threshold} → {max_reasonable} (fewer analysts)")
+
     if parallel:
-        logger.info(f"Running {len(ALL_ANALYSTS)} analysts in parallel...")
-        with ThreadPoolExecutor(max_workers=len(ALL_ANALYSTS)) as executor:
+        logger.info(f"Running {len(enabled_analysts)} analysts in parallel...")
+        with ThreadPoolExecutor(max_workers=len(enabled_analysts)) as executor:
             futures = {
                 executor.submit(run_analyst, cls, config, market_briefing): cls.name
-                for cls in ALL_ANALYSTS
+                for cls in enabled_analysts
             }
             for future in as_completed(futures):
                 analyst_name = futures[future]
@@ -110,7 +134,7 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
                         "market_outlook": "Analysis unavailable",
                     })
     else:
-        for analyst_class in ALL_ANALYSTS:
+        for analyst_class in enabled_analysts:
             logger.info(f"  Running {analyst_class.name}...")
             result = run_analyst(analyst_class, config, market_briefing)
             analyst_results.append(result)
@@ -179,10 +203,23 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SICA — Sage Investor Council Agent")
+    parser = argparse.ArgumentParser(
+        description="SICA — Sage Investor Council Agent",
+        epilog="Analyst keys: warren_buffett, charlie_munger, george_soros, "
+               "peter_lynch, ray_dalio, carl_icahn, benjamin_graham",
+    )
     parser.add_argument("--config", default="config/settings.yaml", help="Path to config file")
     parser.add_argument("--skip-email", action="store_true", help="Skip sending email")
     parser.add_argument("--no-save", action="store_true", help="Don't save report files")
+    parser.add_argument(
+        "--analysts", nargs="+", metavar="KEY", default=None,
+        help="Run only these analysts (e.g. --analysts warren_buffett benjamin_graham)",
+    )
     args = parser.parse_args()
 
-    main(config_path=args.config, skip_email=args.skip_email, save_report=not args.no_save)
+    main(
+        config_path=args.config,
+        skip_email=args.skip_email,
+        save_report=not args.no_save,
+        analysts_override=args.analysts,
+    )

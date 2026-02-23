@@ -82,7 +82,7 @@ watchlist:
 ### 4. Run
 
 ```bash
-# Full run (collect data → analyze → email report)
+# Full run — all 7 sages (collect data → analyze → email report)
 python run.py
 
 # Generate report without sending email
@@ -90,9 +90,46 @@ python run.py --skip-email
 
 # Don't save HTML/text report files
 python run.py --no-save
+
+# Run only specific analysts (saves API budget)
+python run.py --analysts warren_buffett benjamin_graham charlie_munger
 ```
 
 Reports are saved to `data/report_YYYY-MM-DD.html` and `data/report_YYYY-MM-DD.txt`.
+
+### 5. Budget control — pick your sages
+
+Each analyst = 1 Claude API call per run. Running all 7 costs ~7x a single call. To save budget, enable only the analysts you want in `config/settings.yaml`:
+
+```yaml
+analysts:
+  enabled:
+    - warren_buffett
+    - benjamin_graham
+    - charlie_munger
+```
+
+Or override from the command line (takes priority over config):
+
+```bash
+python run.py --analysts warren_buffett peter_lynch
+```
+
+Available analyst keys:
+
+| Key | Sage |
+|---|---|
+| `warren_buffett` | Warren Buffett — value + moat investing |
+| `charlie_munger` | Charlie Munger — mental models + inversion |
+| `george_soros` | George Soros — reflexivity + macro |
+| `peter_lynch` | Peter Lynch — GARP + PEG ratio |
+| `ray_dalio` | Ray Dalio — cycles + risk parity |
+| `carl_icahn` | Carl Icahn — activist + governance |
+| `benjamin_graham` | Benjamin Graham — deep value + margin of safety |
+
+When fewer than 7 analysts are active, the consensus threshold auto-adjusts so you still get meaningful consensus signals.
+
+Omit the `enabled` key entirely (or delete it) to run all 7.
 
 ## Data Sources
 

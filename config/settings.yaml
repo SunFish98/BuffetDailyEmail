@@ -87,6 +87,27 @@ analysts:
   # Temperature for analyst responses (0.0 = deterministic, 1.0 = creative)
   temperature: 0.3
 
+  # Which sages to enable. Comment out this entire block to run all 7.
+  # Each analyst = 1 Claude API call per run. Pick a subset to save budget.
+  # Options: warren_buffett, charlie_munger, george_soros, peter_lynch,
+  #          ray_dalio, carl_icahn, benjamin_graham
+  #
+  # Example: run only 3 analysts (~57% cost savings)
+  # enabled:
+  #   - warren_buffett
+  #   - charlie_munger
+  #   - benjamin_graham
+  #
+  # Uncomment below to run all 7 (default when omitted):
+  # enabled:
+  #   - warren_buffett
+  #   - charlie_munger
+  #   - george_soros
+  #   - peter_lynch
+  #   - ray_dalio
+  #   - carl_icahn
+  #   - benjamin_graham
+
 # Aggregator settings
 aggregator:
   # Minimum analysts agreeing for "consensus" label
