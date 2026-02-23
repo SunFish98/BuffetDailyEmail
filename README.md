@@ -44,7 +44,22 @@ A multi-agent stock analysis system that uses Claude AI to simulate 7 legendary 
 | **Carl Icahn** | Activist investing, find and fix mismanagement | Governance, breakup value, catalysts, buybacks |
 | **Benjamin Graham** | Margin of safety, quantitative deep value | Graham number, P/E < 15, P/B < 1.5, net-nets |
 
-## Quick Start
+## Quick Start (Web Interface)
+
+The easiest way to use SICA — no config files to edit.
+
+```bash
+pip install -r requirements.txt
+python run_web.py
+```
+
+Open **http://localhost:5000** in your browser. The web interface lets you:
+
+- **Setup** — enter API keys, select analysts, edit watchlist, configure email — all from the browser
+- **Dashboard** — run analysis with one click, see live progress, view latest results
+- **History** — browse all past reports, track analyst accuracy over time
+
+## Quick Start (CLI)
 
 ### 1. Install dependencies
 
@@ -223,7 +238,8 @@ sica/
 ├── config/settings.yaml              # Watchlist + all settings
 ├── .env.example                      # API keys template
 ├── requirements.txt                  # Python dependencies
-├── run.py                            # Entry point
+├── run.py                            # CLI entry point
+├── run_web.py                        # Web interface entry point
 ├── src/
 │   ├── main.py                       # 5-phase orchestrator
 │   ├── data_collector/
@@ -245,7 +261,15 @@ sica/
 │   │   └── graham.py               # Benjamin Graham agent
 │   ├── aggregator/aggregator.py     # Consensus + LLM synthesis
 │   ├── email_sender/sender.py       # HTML/text email delivery
-│   └── storage/history.py           # SQLite tracking + scorecards
+│   ├── storage/history.py           # SQLite tracking + scorecards
+│   └── web/
+│       ├── app.py                    # Flask web application
+│       └── templates/                # Apple-style HTML templates
+│           ├── base.html             # Design system + navigation
+│           ├── dashboard.html        # Run analysis, view latest
+│           ├── setup.html            # API keys, watchlist, config
+│           ├── history.html          # Browse past reports
+│           └── report.html           # Individual report view
 └── data/                             # Reports + history database
 ```
 

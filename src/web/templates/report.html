@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Report — {{ date }}{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-32">
+  <div>
+    <h1 class="page-title">{{ date }}</h1>
+    <p class="page-subtitle">Daily Investment Intelligence Report</p>
+  </div>
+  <a href="/history" class="btn btn-secondary">Back to History</a>
+</div>
+
+{% set agg = report.get('aggregated', {}) %}
+{% set synthesis = agg.get('synthesis', {}) %}
+{% set analyst_results = report.get('analyst_results', []) %}
+{% set scorecard = report.get('scorecard', {}) %}
+
+<!-- Market Overview -->
+{% if synthesis.get('market_overview') %}
+<div class="card mb-24">
+  <div class="card-title">Market Overview</div>
+  <p style="font-size: 15px; line-height: 1.65; color: var(--text-secondary); white-space: pre-wrap;">{{ synthesis.market_overview }}</p>
+</div>
+{% endif %}
+
+<!-- Strongest Signals -->
+{% if synthesis.get('strongest_signals') %}
+<div class="section-title">Strongest Signals</div>
+<div class="mb-24">
+  {% for signal in synthesis.strongest_signals %}
+  <div class="signal-card {% if signal.direction == 'BUY' %}buy{% else %}sell{% endif %}">
+    <div class="flex-between">
+      <span class="signal-ticker">{{ signal.ticker }}</span>
+      <div>
+        <span class="tag tag-{{ signal.direction|lower }}">{{ signal.direction }}</span>
+        {% if signal.confidence %}
+        <span class="tag tag-{{ signal.confidence|lower }}" style="margin-left: 4px;">{{ signal.confidence }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="signal-text">{{ signal.synthesis }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Consensus Buys -->
+{% set consensus_buys = agg.get('consensus_buys', []) %}
+{% if consensus_buys %}
+<div class="section-title">Consensus Buys</div>
+<div class="mb-24">
+  {% for cb in consensus_buys %}
+  <div class="signal-card buy">
+    <div class="flex-between">
+      <span class="signal-ticker">{{ cb.ticker }}</span>
+      <span class="tag tag-buy">{{ cb.buy_count }} analysts</span>
+    </div>
+    <div class="signal-meta">{{ cb.analysts | join(', ') }}</div>
+    {% for analyst, reason in cb.get('reasonings', {}).items() %}
+    <div class="signal-text"><strong>{{ analyst }}:</strong> {{ reason }}</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Consensus Sells -->
+{% set consensus_sells = agg.get('consensus_sells', []) %}
+{% if consensus_sells %}
+<div class="section-title">Consensus Sells</div>
+<div class="mb-24">
+  {% for cs in consensus_sells %}
+  <div class="signal-card sell">
+    <div class="flex-between">
+      <span class="signal-ticker">{{ cs.ticker }}</span>
+      <span class="tag tag-sell">{{ cs.sell_count }} analysts</span>
+    </div>
+    <div class="signal-meta">{{ cs.analysts | join(', ') }}</div>
+    {% for analyst, reason in cs.get('reasonings', {}).items() %}
+    <div class="signal-text"><strong>{{ analyst }}:</strong> {{ reason }}</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Interesting Debates -->
+{% if synthesis.get('interesting_debates') %}
+<div class="section-title">Interesting Debates</div>
+<div class="mb-24">
+  {% for debate in synthesis.interesting_debates %}
+  <div class="signal-card debate">
+    <span class="signal-ticker">{{ debate.topic }}</span>
+    <div class="signal-text"><strong>Bull Case:</strong> {{ debate.bull_case }}</div>
+    <div class="signal-text"><strong>Bear Case:</strong> {{ debate.bear_case }}</div>
+    {% if debate.implication %}
+    <div class="signal-text" style="font-style: italic; margin-top: 8px;">{{ debate.implication }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Action Ideas -->
+{% if synthesis.get('action_ideas') %}
+<div class="section-title">Action Ideas</div>
+<div class="mb-24">
+  {% for idea in synthesis.action_ideas %}
+  <div class="action-card">
+    <div class="action-title">{{ idea.idea }}</div>
+    <div class="action-rationale">{{ idea.rationale }}</div>
+    {% if idea.risk %}<div class="action-risk">Risk: {{ idea.risk }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Key Risks -->
+{% if synthesis.get('key_risks') %}
+<div class="section-title">Key Risks</div>
+<div class="card mb-24">
+  {% for risk in synthesis.key_risks %}
+  <div style="padding: 8px 0; font-size: 14px; color: var(--text-secondary); {% if not loop.last %}border-bottom: 0.5px solid var(--border-light);{% endif %}">
+    {{ risk }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Full Analyst Breakdown -->
+{% if analyst_results %}
+<div class="section-title">Full Analyst Breakdown</div>
+
+{% for result in analyst_results %}
+<div class="card mb-16">
+  <div class="flex-between mb-8">
+    <div style="font-size: 17px; font-weight: 600;">{{ result.get('analyst', 'Unknown') }}</div>
+    <div style="font-size: 13px; color: var(--text-tertiary);">
+      {{ result.get('top_picks', []) | length }} picks
+    </div>
+  </div>
+
+  {% if result.get('market_outlook') and result.market_outlook != 'Error' %}
+  <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">{{ result.market_outlook }}</p>
+  {% endif %}
+
+  {% if result.get('top_picks') %}
+  <div class="table-wrap" style="margin-top: 8px;">
+    <table>
+      <thead>
+        <tr><th>Ticker</th><th>Action</th><th>Conviction</th><th>Reasoning</th></tr>
+      </thead>
+      <tbody>
+        {% for pick in result.top_picks %}
+        <tr>
+          <td style="font-weight: 600;">{{ pick.ticker }}</td>
+          <td><span class="tag tag-{{ pick.action|lower }}">{{ pick.action }}</span></td>
+          <td><span class="tag tag-{{ pick.conviction|lower }}">{{ pick.conviction }}</span></td>
+          <td style="font-size: 13px; color: var(--text-secondary); max-width: 400px;">{{ pick.reasoning }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if result.get('key_observations') %}
+  <div style="margin-top: 12px;">
+    {% for obs in result.key_observations %}
+    <div style="font-size: 13px; color: var(--text-tertiary); padding: 3px 0;">{{ obs }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Analyst Scorecard -->
+{% if scorecard %}
+<div class="section-title mt-24">Analyst Accuracy</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Analyst</th><th>Accuracy</th><th>Avg Return</th><th>Total Picks</th></tr></thead>
+    <tbody>
+      {% for analyst, sc in scorecard.items() %}
+      <tr>
+        <td style="font-weight: 500;">{{ analyst }}</td>
+        <td>{{ sc.accuracy_pct }}%</td>
+        <td class="{% if sc.avg_return >= 0 %}text-green{% else %}text-red{% endif %}">
+          {{ "+" if sc.avg_return >= 0 }}{{ sc.avg_return }}%
+        </td>
+        <td>{{ sc.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div style="text-align: center; margin-top: 32px; padding: 24px; font-size: 12px; color: var(--text-tertiary);">
+  This report was generated by AI agents simulating famous investor philosophies.<br>
+  For educational purposes only. Not financial advice.
+</div>
+{% endblock %}

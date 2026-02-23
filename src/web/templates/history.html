@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Analysis History</h1>
+<p class="page-subtitle">Browse past reports and track analyst accuracy</p>
+
+<!-- Analyst Scorecard -->
+{% if scorecard %}
+<div class="section-title">Analyst Scorecard (Last 30 Days)</div>
+<div class="card-grid mb-32">
+  {% for analyst, sc in scorecard.items() %}
+  <div class="card">
+    <div class="card-title">{{ analyst }}</div>
+    <div class="flex-between" style="align-items: flex-end;">
+      <div class="card-value">{{ sc.accuracy_pct }}%</div>
+      <span class="tag {% if sc.avg_return >= 0 %}tag-buy{% else %}tag-sell{% endif %}">
+        {{ "+" if sc.avg_return >= 0 }}{{ sc.avg_return }}% avg
+      </span>
+    </div>
+    <div class="card-desc">{{ sc.total }} picks &middot; {{ sc.correct }} correct</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Reports list -->
+<div class="section-title">All Reports</div>
+
+{% if reports %}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Generated</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reports %}
+      <tr>
+        <td style="font-weight: 500; font-size: 15px;">{{ r.date }}</td>
+        <td class="text-secondary">{{ r.created_at[:16] if r.created_at else '' }}</td>
+        <td style="text-align: right;">
+          <a href="/report/{{ r.date }}" class="btn btn-secondary btn-sm">View Report</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">&#128202;</div>
+    <div class="empty-title">No reports yet</div>
+    <div class="empty-desc">Run your first analysis from the Dashboard to see it here.</div>
+    <a href="/" class="btn btn-primary">Go to Dashboard</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

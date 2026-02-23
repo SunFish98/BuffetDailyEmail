@@ -27,6 +27,9 @@ fredapi>=0.5.1
 aiohttp>=3.9.0
 asyncio-throttle>=1.0.2
 
+# Web Interface
+flask>=3.0.0
+
 # Utilities
 pandas>=2.1.0
 tabulate>=0.9.0

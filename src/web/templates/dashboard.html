@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-32">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Your daily investment intelligence at a glance</p>
+  </div>
+  {% if has_api_key %}
+  <button id="runBtn" class="btn btn-primary btn-lg" onclick="runAnalysis()" {% if status.running %}disabled{% endif %}>
+    {% if status.running %}
+      <span class="spinner"></span> Running...
+    {% else %}
+      Run Analysis
+    {% endif %}
+  </button>
+  {% else %}
+  <a href="/setup" class="btn btn-primary btn-lg">Set Up API Key</a>
+  {% endif %}
+</div>
+
+<!-- Status banner -->
+<div id="statusBanner" class="card mb-24" style="display: {% if status.running or status.completed_at %}block{% else %}none{% endif %};">
+  <div class="flex-between mb-8">
+    <span id="statusText" style="font-weight: 500;">{{ status.progress }}</span>
+    <span id="statusPhase" class="text-secondary" style="font-size: 13px;">
+      {% if status.running %}Phase {{ status.phase }}/{{ status.total_phases }}{% endif %}
+    </span>
+  </div>
+  <div class="progress-bar">
+    <div id="progressFill" class="progress-fill" style="width: {{ (status.phase / status.total_phases * 100) if status.running else (100 if status.completed_at else 0) }}%;"></div>
+  </div>
+</div>
+
+{% if status.error %}
+<div class="flash flash-error mb-24">{{ status.error }}</div>
+{% endif %}
+
+<!-- Stats -->
+<div class="grid-3 mb-32">
+  <div class="card">
+    <div class="card-title">Watchlist</div>
+    <div class="card-value">{{ watchlist_count }}</div>
+    <div class="card-desc">tickers tracked</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Active Sages</div>
+    <div class="card-value">{{ enabled_count }}</div>
+    <div class="card-desc">analyst agents enabled</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Reports</div>
+    <div class="card-value">{{ total_reports }}</div>
+    <div class="card-desc">analyses completed</div>
+  </div>
+</div>
+
+<!-- Latest report -->
+{% if latest_report %}
+<div class="section-title">Latest Analysis</div>
+{% set agg = latest_report.get('aggregated', {}) %}
+{% set synthesis = agg.get('synthesis', {}) %}
+
+{% if synthesis.get('market_overview') %}
+<div class="card mb-24">
+  <div class="card-title">Market Overview</div>
+  <p style="font-size: 15px; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap;">{{ synthesis.market_overview }}</p>
+</div>
+{% endif %}
+
+<!-- Strongest signals -->
+{% if synthesis.get('strongest_signals') %}
+<div class="section-title" style="font-size: 17px;">Strongest Signals</div>
+{% for signal in synthesis.strongest_signals %}
+<div class="signal-card {% if signal.direction == 'BUY' %}buy{% else %}sell{% endif %}">
+  <div class="flex-between">
+    <span class="signal-ticker">{{ signal.ticker }}</span>
+    <span class="tag tag-{{ signal.direction|lower }}">{{ signal.direction }}</span>
+  </div>
+  <div class="signal-text">{{ signal.synthesis }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Action ideas -->
+{% if synthesis.get('action_ideas') %}
+<div class="section-title mt-24" style="font-size: 17px;">Action Ideas</div>
+{% for idea in synthesis.action_ideas %}
+<div class="action-card">
+  <div class="action-title">{{ idea.idea }}</div>
+  <div class="action-rationale">{{ idea.rationale }}</div>
+  {% if idea.risk %}<div class="action-risk">Risk: {{ idea.risk }}</div>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- View full report link -->
+<div class="mt-24" style="text-align: center;">
+  <a href="/report/{{ latest_report.date }}" class="btn btn-secondary">View Full Report</a>
+</div>
+
+{% elif not has_api_key %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">&#9881;</div>
+    <div class="empty-title">Welcome to SICA</div>
+    <div class="empty-desc">Set up your Anthropic API key to get started with your first analysis.</div>
+    <a href="/setup" class="btn btn-primary">Go to Setup</a>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">&#9888;</div>
+    <div class="empty-title">No reports yet</div>
+    <div class="empty-desc">Click "Run Analysis" to generate your first daily investment intelligence report.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent reports -->
+{% if reports %}
+<div class="section-title mt-24">Recent Reports</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for r in reports %}
+      <tr>
+        <td style="font-weight: 500;">{{ r.date }}</td>
+        <td><a href="/report/{{ r.date }}" class="btn btn-secondary btn-sm">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if total_reports > 5 %}
+<div class="mt-16" style="text-align: center;">
+  <a href="/history" class="btn btn-secondary btn-sm">View All Reports</a>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runAnalysis() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting...';
+
+  fetch('/api/run', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => pollStatus())
+    .catch(e => {
+      btn.disabled = false;
+      btn.textContent = 'Run Analysis';
+      alert('Failed to start: ' + e);
+    });
+}
+
+function pollStatus() {
+  const banner = document.getElementById('statusBanner');
+  const text = document.getElementById('statusText');
+  const phase = document.getElementById('statusPhase');
+  const fill = document.getElementById('progressFill');
+  const btn = document.getElementById('runBtn');
+
+  banner.style.display = 'block';
+
+  const interval = setInterval(() => {
+    fetch('/api/status')
+      .then(r => r.json())
+      .then(s => {
+        text.textContent = s.progress;
+        phase.textContent = s.running ? `Phase ${s.phase}/${s.total_phases}` : '';
+        fill.style.width = s.running ? `${(s.phase / s.total_phases) * 100}%` : '100%';
+
+        if (!s.running) {
+          clearInterval(interval);
+          btn.disabled = false;
+          btn.textContent = 'Run Analysis';
+          if (s.error) {
+            text.textContent = 'Error: ' + s.error;
+            text.style.color = 'var(--red)';
+          } else {
+            setTimeout(() => location.reload(), 1000);
+          }
+        }
+      });
+  }, 2000);
+}
+
+{% if status.running %}
+pollStatus();
+{% endif %}
+</script>
+{% endblock %}

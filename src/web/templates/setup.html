@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Setup</h1>
+<p class="page-subtitle">Configure SICA to work with your API keys, watchlist, and preferences</p>
+
+<form method="POST" action="/setup">
+
+  <!-- API Keys -->
+  <div class="card mb-24">
+    <div class="section-title">API Keys</div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Anthropic API Key *</label>
+        <input type="password" name="ANTHROPIC_API_KEY" class="form-input"
+               value="{{ env_vars.get('ANTHROPIC_API_KEY', '') }}"
+               placeholder="sk-ant-..." autocomplete="off">
+        <div class="form-hint">Required. Get yours at console.anthropic.com</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Claude Model</label>
+        <select name="CLAUDE_MODEL" class="form-select">
+          <option value="claude-sonnet-4-20250514" {% if env_vars.get('CLAUDE_MODEL', '') == 'claude-sonnet-4-20250514' %}selected{% endif %}>Claude Sonnet 4 (Recommended)</option>
+          <option value="claude-opus-4-20250514" {% if env_vars.get('CLAUDE_MODEL') == 'claude-opus-4-20250514' %}selected{% endif %}>Claude Opus 4 (Higher quality, more expensive)</option>
+          <option value="claude-haiku-4-5-20251001" {% if env_vars.get('CLAUDE_MODEL') == 'claude-haiku-4-5-20251001' %}selected{% endif %}>Claude Haiku 4.5 (Cheapest, fastest)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size: 15px; margin-top: 20px;">Free Data APIs (optional)</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">FRED API Key</label>
+        <input type="password" name="FRED_API_KEY" class="form-input"
+               value="{{ env_vars.get('FRED_API_KEY', '') }}"
+               placeholder="Macro economic data" autocomplete="off">
+        <div class="form-hint">Free at fred.stlouisfed.org</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Finnhub API Key</label>
+        <input type="password" name="FINNHUB_API_KEY" class="form-input"
+               value="{{ env_vars.get('FINNHUB_API_KEY', '') }}"
+               placeholder="News, earnings, insider data" autocomplete="off">
+        <div class="form-hint">Free at finnhub.io</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size: 15px; margin-top: 20px;">Paid APIs (optional)</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Alpha Vantage Key</label>
+        <input type="password" name="ALPHA_VANTAGE_API_KEY" class="form-input"
+               value="{{ env_vars.get('ALPHA_VANTAGE_API_KEY', '') }}" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Polygon.io Key</label>
+        <input type="password" name="POLYGON_API_KEY" class="form-input"
+               value="{{ env_vars.get('POLYGON_API_KEY', '') }}" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NewsAPI Key</label>
+        <input type="password" name="NEWSAPI_KEY" class="form-input"
+               value="{{ env_vars.get('NEWSAPI_KEY', '') }}" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Market Data Source</label>
+        <select name="market_data_source" class="form-select">
+          {% set current_source = config.get('data_collection', {}).get('market_data_source', 'yfinance') %}
+          <option value="yfinance" {% if current_source == 'yfinance' %}selected{% endif %}>yfinance (Free)</option>
+          <option value="alpha_vantage" {% if current_source == 'alpha_vantage' %}selected{% endif %}>Alpha Vantage</option>
+          <option value="polygon" {% if current_source == 'polygon' %}selected{% endif %}>Polygon.io</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analyst Selection -->
+  <div class="card mb-24">
+    <div class="flex-between mb-16">
+      <div>
+        <div class="section-title" style="margin-bottom: 4px;">Sage Analysts</div>
+        <div class="text-secondary" style="font-size: 14px;">Each analyst = 1 API call. Select fewer to reduce cost.</div>
+      </div>
+      <span id="analystCount" style="font-size: 14px; color: var(--text-tertiary);"></span>
+    </div>
+
+    <div class="toggle-group">
+      {% for key, info in analyst_info.items() %}
+      <label class="toggle-card {% if key in enabled_keys %}selected{% endif %}" onclick="this.classList.toggle('selected'); updateCount();">
+        <input type="checkbox" name="analysts" value="{{ key }}" {% if key in enabled_keys %}checked{% endif %}>
+        <div class="toggle-icon">{{ info.icon }}</div>
+        <div>
+          <div class="toggle-text">{{ info.name }}</div>
+          <div class="toggle-desc">{{ info.short }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Watchlist -->
+  <div class="card mb-24">
+    <div class="section-title">Watchlist</div>
+    <p class="text-secondary mb-16" style="font-size: 14px;">One ticker per line, or comma-separated. These are the stocks your sages will analyze.</p>
+    <textarea name="watchlist" class="form-textarea" rows="12" placeholder="AAPL&#10;MSFT&#10;GOOGL&#10;...">{{ config.get('watchlist', []) | join('\n') }}</textarea>
+  </div>
+
+  <!-- Email -->
+  <div class="card mb-24">
+    <div class="section-title">Email Delivery</div>
+    <p class="text-secondary mb-16" style="font-size: 14px;">Optional. Configure to receive daily reports in your inbox.</p>
+
+    <div class="form-group">
+      <label class="form-label">Email Method</label>
+      <select name="EMAIL_METHOD" class="form-select" id="emailMethod" onchange="toggleEmailFields()">
+        <option value="smtp" {% if env_vars.get('EMAIL_METHOD', 'smtp') == 'smtp' %}selected{% endif %}>SMTP (Gmail, etc.)</option>
+        <option value="sendgrid" {% if env_vars.get('EMAIL_METHOD') == 'sendgrid' %}selected{% endif %}>SendGrid</option>
+      </select>
+    </div>
+
+    <div id="smtpFields">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">SMTP Host</label>
+          <input type="text" name="SMTP_HOST" class="form-input"
+                 value="{{ env_vars.get('SMTP_HOST', 'smtp.gmail.com') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SMTP Port</label>
+          <input type="text" name="SMTP_PORT" class="form-input"
+                 value="{{ env_vars.get('SMTP_PORT', '587') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SMTP Username</label>
+          <input type="text" name="SMTP_USER" class="form-input"
+                 value="{{ env_vars.get('SMTP_USER', '') }}" placeholder="your_email@gmail.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SMTP Password</label>
+          <input type="password" name="SMTP_PASSWORD" class="form-input"
+                 value="{{ env_vars.get('SMTP_PASSWORD', '') }}" placeholder="App password" autocomplete="off">
+        </div>
+      </div>
+    </div>
+
+    <div id="sendgridFields" style="display: none;">
+      <div class="form-group">
+        <label class="form-label">SendGrid API Key</label>
+        <input type="password" name="SENDGRID_API_KEY" class="form-input"
+               value="{{ env_vars.get('SENDGRID_API_KEY', '') }}" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">From Email</label>
+        <input type="email" name="EMAIL_FROM" class="form-input"
+               value="{{ env_vars.get('EMAIL_FROM', '') }}" placeholder="sender@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">To Email</label>
+        <input type="email" name="EMAIL_TO" class="form-input"
+               value="{{ env_vars.get('EMAIL_TO', '') }}" placeholder="you@example.com">
+      </div>
+    </div>
+  </div>
+
+  <!-- Save -->
+  <div style="text-align: right;">
+    <button type="submit" class="btn btn-primary btn-lg">Save Settings</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateCount() {
+  const checked = document.querySelectorAll('input[name="analysts"]:checked').length;
+  document.getElementById('analystCount').textContent = checked + '/7 selected';
+}
+
+function toggleEmailFields() {
+  const method = document.getElementById('emailMethod').value;
+  document.getElementById('smtpFields').style.display = method === 'smtp' ? 'block' : 'none';
+  document.getElementById('sendgridFields').style.display = method === 'sendgrid' ? 'block' : 'none';
+}
+
+updateCount();
+toggleEmailFields();
+</script>
+{% endblock %}
