@@ -1,5 +1,5 @@
 # ===========================================
-# BuffetDailyEmail Settings
+# SICA — Sage Investor Council Agent Settings
 # ===========================================
 
 # Watchlist - Add/remove tickers as needed
@@ -105,7 +105,7 @@ aggregator:
 # Email settings
 email:
   # Subject line template (supports {date} placeholder)
-  subject: "Daily Investment Intelligence - {date}"
+  subject: "SICA Daily Intelligence - {date}"
 
   # Send even if no strong signals found
   send_if_no_signals: true

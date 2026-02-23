@@ -1,4 +1,4 @@
-# BuffetDailyEmail
+# SICA — Sage Investor Council Agent
 
 A multi-agent stock analysis system that uses Claude AI to simulate 7 legendary investors analyzing the daily market, then aggregates their opinions into a single actionable intelligence report delivered to your inbox.
 
@@ -32,7 +32,7 @@ A multi-agent stock analysis system that uses Claude AI to simulate 7 legendary 
 └─────────────────────────────────────────────────┘
 ```
 
-## The 7 Analyst Agents
+## The 7 Sage Analysts
 
 | Agent | Philosophy | Focus |
 |---|---|---|
@@ -156,7 +156,7 @@ The system is designed to run once daily after market close. Set up a cron job, 
 
 ```bash
 # Cron example: run at 5:30 PM ET every weekday
-30 17 * * 1-5 cd /path/to/BuffetDailyEmail && python run.py
+30 17 * * 1-5 cd /path/to/sica && python run.py
 ```
 
 ## Configuration Reference
@@ -182,7 +182,7 @@ The system stores every recommendation in SQLite (`data/history.db`) with the pr
 ## Project Structure
 
 ```
-BuffetDailyEmail/
+sica/
 ├── config/settings.yaml              # Watchlist + all settings
 ├── .env.example                      # API keys template
 ├── requirements.txt                  # Python dependencies
@@ -214,4 +214,4 @@ BuffetDailyEmail/
 
 ## Disclaimer
 
-This tool generates AI-simulated investment analysis for **educational and informational purposes only**. It is **not financial advice**. The AI agents simulate investment philosophies but are not the actual investors. Always do your own research and consult a qualified financial advisor before making investment decisions.
+SICA generates AI-simulated investment analysis for **educational and informational purposes only**. It is **not financial advice**. The AI agents simulate investment philosophies but are not the actual investors. Always do your own research and consult a qualified financial advisor before making investment decisions.

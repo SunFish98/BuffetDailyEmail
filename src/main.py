@@ -1,4 +1,4 @@
-"""Main orchestrator for BuffetDailyEmail multi-agent stock analysis system."""
+"""Main orchestrator for SICA (Sage Investor Council Agent) multi-agent stock analysis system."""
 
 import asyncio
 import json
@@ -57,7 +57,7 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
         sys.exit(1)
 
     logger.info("=" * 60)
-    logger.info("BuffetDailyEmail — Multi-Agent Stock Analysis")
+    logger.info("SICA — Sage Investor Council Agent")
     logger.info("=" * 60)
 
     # Load config
@@ -179,7 +179,7 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="BuffetDailyEmail — Multi-Agent Stock Analysis")
+    parser = argparse.ArgumentParser(description="SICA — Sage Investor Council Agent")
     parser.add_argument("--config", default="config/settings.yaml", help="Path to config file")
     parser.add_argument("--skip-email", action="store_true", help="Skip sending email")
     parser.add_argument("--no-save", action="store_true", help="Don't save report files")

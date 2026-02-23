@@ -19,7 +19,7 @@ class SECFilingsCollector:
     def __init__(self):
         self.user_agent = os.getenv(
             "SEC_EDGAR_USER_AGENT",
-            "BuffetDailyEmail research@example.com"
+            "SICA research@example.com"
         )
         self.headers = {
             "User-Agent": self.user_agent,

@@ -87,7 +87,7 @@ class InsiderTradingCollector:
         # SEC EDGAR full-text search for Form 4 filings
         user_agent = os.getenv(
             "SEC_EDGAR_USER_AGENT",
-            "BuffetDailyEmail research@example.com"
+            "SICA research@example.com"
         )
         try:
             resp = requests.get(
