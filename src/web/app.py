@@ -315,6 +315,9 @@ def _run_analysis_background():
     }
 
     try:
+        # Reload .env so any changes made via Setup are picked up
+        load_dotenv(override=True)
+
         from src.data_collector import DataCollector
         from src.analysts import get_enabled_analysts, ALL_ANALYSTS
         from src.aggregator import Aggregator
