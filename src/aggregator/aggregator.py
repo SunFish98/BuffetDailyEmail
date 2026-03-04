@@ -5,7 +5,7 @@ import logging
 import os
 from collections import defaultdict
 
-import anthropic
+from ..llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,7 @@ class Aggregator:
         agg_config = config.get("aggregator", {})
         self.consensus_threshold = agg_config.get("consensus_threshold", 3)
         self.weights = agg_config.get("weights", {})
-        analyst_config = config.get("analysts", {})
-        self.model = os.getenv("CLAUDE_MODEL", analyst_config.get("model", "claude-sonnet-4-20250514"))
-        self.client = anthropic.Anthropic()
+        self.llm = LLMClient(config)
 
     def aggregate(self, analyst_results: list[dict], market_briefing: str) -> dict:
         """Aggregate all analyst results into a final report.
@@ -231,24 +229,8 @@ Respond with valid JSON in this format:
         )
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                temperature=0.3,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_message}],
-            )
-
-            response_text = response.content[0].text.strip()
-            json_text = response_text
-            if json_text.startswith("```"):
-                lines = json_text.split("\n")
-                json_text = "\n".join(
-                    line for line in lines
-                    if not line.strip().startswith("```")
-                )
-
-            return json.loads(json_text)
+            result, _meta = self.llm.generate_json(system_prompt, user_message)
+            return result
 
         except Exception as e:
             logger.error(f"Aggregator LLM synthesis failed: {e}")

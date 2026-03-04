@@ -52,10 +52,17 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
     load_dotenv()
     start_time = time.time()
 
-    # Verify API key
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        logger.error("ANTHROPIC_API_KEY not set. Copy .env.example to .env and add your key.")
-        sys.exit(1)
+    # Verify API key for the selected provider
+    from .llm_client import get_llm_provider
+    provider = get_llm_provider()
+    if provider == "gemini":
+        if not os.getenv("GEMINI_API_KEY"):
+            logger.error("GEMINI_API_KEY not set. Add it to your .env file.")
+            sys.exit(1)
+    else:
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            logger.error("ANTHROPIC_API_KEY not set. Copy .env.example to .env and add your key.")
+            sys.exit(1)
 
     logger.info("=" * 60)
     logger.info("SICA — Sage Investor Council Agent")

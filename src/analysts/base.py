@@ -1,10 +1,10 @@
-"""Base analyst agent with Claude API integration."""
+"""Base analyst agent with multi-provider LLM integration (Claude / Gemini)."""
 
 import json
 import logging
 import os
 
-import anthropic
+from ..llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,7 @@ class BaseAnalyst:
 
     def __init__(self, config: dict):
         self.config = config
-        analyst_config = config.get("analysts", {})
-        self.model = os.getenv("CLAUDE_MODEL", analyst_config.get("model", "claude-sonnet-4-20250514"))
-        self.max_tokens = analyst_config.get("max_tokens", 4096)
-        self.temperature = analyst_config.get("temperature", 0.3)
-        self.client = anthropic.Anthropic()
+        self.llm = LLMClient(config)
 
     def analyze(self, market_briefing: str) -> dict:
         """Run analysis on the market briefing data.
@@ -81,32 +77,8 @@ class BaseAnalyst:
         )
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_message}],
-            )
-
-            response_text = response.content[0].text.strip()
-
-            # Parse JSON from response (handle potential markdown wrapping)
-            json_text = response_text
-            if json_text.startswith("```"):
-                # Strip markdown code fences
-                lines = json_text.split("\n")
-                json_text = "\n".join(
-                    line for line in lines
-                    if not line.strip().startswith("```")
-                )
-
-            result = json.loads(json_text)
-            result["_meta"] = {
-                "model": self.model,
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-            }
+            result, meta = self.llm.generate_json(system_prompt, user_message)
+            result["_meta"] = meta
 
             logger.info(
                 f"{self.name} analysis complete: "
@@ -120,7 +92,6 @@ class BaseAnalyst:
             return {
                 "analyst": self.name,
                 "error": f"Invalid JSON response: {e}",
-                "raw_response": response_text[:1000] if 'response_text' in dir() else "No response",
                 "top_picks": [],
                 "avoid_list": [],
                 "key_observations": [f"Analysis failed due to JSON parsing error"],

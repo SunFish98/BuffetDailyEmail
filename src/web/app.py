@@ -144,8 +144,13 @@ def dashboard():
         latest_report = _get_report(reports[0]["date"])
 
     env_vars = _load_env()
-    has_api_key = bool(env_vars.get("ANTHROPIC_API_KEY") and
-                       env_vars["ANTHROPIC_API_KEY"] != "your_anthropic_api_key_here")
+    provider = env_vars.get("LLM_PROVIDER", "anthropic").lower()
+    if provider in ("google", "gemini"):
+        has_api_key = bool(env_vars.get("GEMINI_API_KEY") and
+                           env_vars["GEMINI_API_KEY"] != "your_gemini_api_key_here")
+    else:
+        has_api_key = bool(env_vars.get("ANTHROPIC_API_KEY") and
+                           env_vars["ANTHROPIC_API_KEY"] != "your_anthropic_api_key_here")
 
     enabled = config.get("analysts", {}).get("enabled")
     enabled_count = len(enabled) if enabled else 7
@@ -187,8 +192,12 @@ def _handle_setup_save():
     config = _load_config()
     env_vars = _load_env()
 
+    # LLM Provider
+    llm_provider = request.form.get("LLM_PROVIDER", "anthropic").strip()
+    env_vars["LLM_PROVIDER"] = llm_provider
+
     # API Keys
-    for key in ["ANTHROPIC_API_KEY", "FRED_API_KEY", "FINNHUB_API_KEY",
+    for key in ["ANTHROPIC_API_KEY", "GEMINI_API_KEY", "FRED_API_KEY", "FINNHUB_API_KEY",
                 "NEWSAPI_KEY", "ALPHA_VANTAGE_API_KEY", "POLYGON_API_KEY"]:
         val = request.form.get(key, "").strip()
         if val:
@@ -202,10 +211,13 @@ def _handle_setup_save():
         if val:
             env_vars[key] = val
 
-    # Model
+    # Models
     model = request.form.get("CLAUDE_MODEL", "").strip()
     if model:
         env_vars["CLAUDE_MODEL"] = model
+    gemini_model = request.form.get("GEMINI_MODEL", "").strip()
+    if gemini_model:
+        env_vars["GEMINI_MODEL"] = gemini_model
 
     _save_env(env_vars)
 

@@ -7,27 +7,65 @@
 
 <form method="POST" action="/setup">
 
-  <!-- API Keys -->
+  <!-- LLM Provider -->
   <div class="card mb-24">
-    <div class="section-title">API Keys</div>
+    <div class="section-title">AI Provider</div>
 
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">Anthropic API Key *</label>
-        <input type="password" name="ANTHROPIC_API_KEY" class="form-input"
-               value="{{ env_vars.get('ANTHROPIC_API_KEY', '') }}"
-               placeholder="sk-ant-..." autocomplete="off">
-        <div class="form-hint">Required. Get yours at console.anthropic.com</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Claude Model</label>
-        <select name="CLAUDE_MODEL" class="form-select">
-          <option value="claude-sonnet-4-20250514" {% if env_vars.get('CLAUDE_MODEL', '') == 'claude-sonnet-4-20250514' %}selected{% endif %}>Claude Sonnet 4 (Recommended)</option>
-          <option value="claude-opus-4-20250514" {% if env_vars.get('CLAUDE_MODEL') == 'claude-opus-4-20250514' %}selected{% endif %}>Claude Opus 4 (Higher quality, more expensive)</option>
-          <option value="claude-haiku-4-5-20251001" {% if env_vars.get('CLAUDE_MODEL') == 'claude-haiku-4-5-20251001' %}selected{% endif %}>Claude Haiku 4.5 (Cheapest, fastest)</option>
-        </select>
+    <div class="form-group mb-16">
+      <label class="form-label">LLM Provider</label>
+      <select name="LLM_PROVIDER" class="form-select" id="llmProvider" onchange="toggleProvider()">
+        {% set current_provider = env_vars.get('LLM_PROVIDER', 'anthropic') %}
+        <option value="anthropic" {% if current_provider == 'anthropic' %}selected{% endif %}>Anthropic Claude</option>
+        <option value="gemini" {% if current_provider in ('gemini', 'google') %}selected{% endif %}>Google Gemini</option>
+      </select>
+    </div>
+
+    <!-- Claude config -->
+    <div id="anthropicFields">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Anthropic API Key</label>
+          <input type="password" name="ANTHROPIC_API_KEY" class="form-input"
+                 value="{{ env_vars.get('ANTHROPIC_API_KEY', '') }}"
+                 placeholder="sk-ant-..." autocomplete="off">
+          <div class="form-hint">Get yours at console.anthropic.com</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Claude Model</label>
+          <select name="CLAUDE_MODEL" class="form-select">
+            <option value="claude-sonnet-4-20250514" {% if env_vars.get('CLAUDE_MODEL', '') == 'claude-sonnet-4-20250514' %}selected{% endif %}>Claude Sonnet 4 (Recommended)</option>
+            <option value="claude-opus-4-20250514" {% if env_vars.get('CLAUDE_MODEL') == 'claude-opus-4-20250514' %}selected{% endif %}>Claude Opus 4 (Higher quality)</option>
+            <option value="claude-haiku-4-5-20251001" {% if env_vars.get('CLAUDE_MODEL') == 'claude-haiku-4-5-20251001' %}selected{% endif %}>Claude Haiku 4.5 (Cheapest)</option>
+          </select>
+        </div>
       </div>
     </div>
+
+    <!-- Gemini config -->
+    <div id="geminiFields" style="display: none;">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Gemini API Key</label>
+          <input type="password" name="GEMINI_API_KEY" class="form-input"
+                 value="{{ env_vars.get('GEMINI_API_KEY', '') }}"
+                 placeholder="AI..." autocomplete="off">
+          <div class="form-hint">Get yours at aistudio.google.com</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gemini Model</label>
+          <select name="GEMINI_MODEL" class="form-select">
+            {% set current_gemini = env_vars.get('GEMINI_MODEL', 'gemini-2.5-flash') %}
+            <option value="gemini-2.5-flash" {% if current_gemini == 'gemini-2.5-flash' %}selected{% endif %}>Gemini 2.5 Flash (Recommended)</option>
+            <option value="gemini-2.5-pro" {% if current_gemini == 'gemini-2.5-pro' %}selected{% endif %}>Gemini 2.5 Pro (Higher quality)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data API Keys -->
+  <div class="card mb-24">
+    <div class="section-title">Data API Keys</div>
 
     <div class="section-title" style="font-size: 15px; margin-top: 20px;">Free Data APIs (optional)</div>
     <div class="grid-2">
@@ -187,7 +225,14 @@ function toggleEmailFields() {
   document.getElementById('sendgridFields').style.display = method === 'sendgrid' ? 'block' : 'none';
 }
 
+function toggleProvider() {
+  const provider = document.getElementById('llmProvider').value;
+  document.getElementById('anthropicFields').style.display = provider === 'anthropic' ? 'block' : 'none';
+  document.getElementById('geminiFields').style.display = provider === 'gemini' ? 'block' : 'none';
+}
+
 updateCount();
 toggleEmailFields();
+toggleProvider();
 </script>
 {% endblock %}
