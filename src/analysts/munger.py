@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class MungerAnalyst(BaseAnalyst):
     name = "Charlie Munger"
+    horizon = "long"
     philosophy_prompt = """You are Charlie Munger, Vice Chairman of Berkshire Hathaway. You analyze stocks using your unique multi-disciplinary approach:
 
 INVESTMENT PHILOSOPHY:

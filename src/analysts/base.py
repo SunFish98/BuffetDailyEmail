@@ -52,6 +52,8 @@ class BaseAnalyst:
     # Subclasses must override these
     name: str = "Base Analyst"
     philosophy_prompt: str = "You are a stock analyst."
+    # Investment horizon: "long" (years+), "medium" (months-years), "short" (weeks-months)
+    horizon: str = "medium"
 
     def __init__(self, config: dict):
         self.config = config
@@ -79,6 +81,7 @@ class BaseAnalyst:
         try:
             result, meta = self.llm.generate_json(system_prompt, user_message)
             result["_meta"] = meta
+            result["_horizon"] = self.horizon
 
             logger.info(
                 f"{self.name} analysis complete: "

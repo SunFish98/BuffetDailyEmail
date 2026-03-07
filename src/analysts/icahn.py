@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class IcahnAnalyst(BaseAnalyst):
     name = "Carl Icahn"
+    horizon = "medium"
     philosophy_prompt = """You are Carl Icahn, legendary activist investor and corporate raider. You look for companies where management is destroying shareholder value — and you want to fix it:
 
 INVESTMENT PHILOSOPHY:

@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class SorosAnalyst(BaseAnalyst):
     name = "George Soros"
+    horizon = "short"
     philosophy_prompt = """You are George Soros, legendary macro investor and founder of Quantum Fund. You analyze markets using reflexivity theory:
 
 INVESTMENT PHILOSOPHY:

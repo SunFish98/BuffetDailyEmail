@@ -148,18 +148,11 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
             picks = len(result.get("top_picks", []))
             logger.info(f"  ✓ {analyst_class.name}: {picks} picks")
 
-    # ── PHASE 3: Aggregation ──
-    logger.info("\n📋 PHASE 3: Aggregating analyst opinions...")
-    aggregated = aggregator.aggregate(analyst_results, market_briefing)
-    consensus_buys = len(aggregated.get("consensus_buys", []))
-    consensus_sells = len(aggregated.get("consensus_sells", []))
-    logger.info(f"  Consensus buys: {consensus_buys}, sells: {consensus_sells}")
-
-    # ── PHASE 4: Historical Tracking ──
-    logger.info("\n📈 PHASE 4: Updating historical records...")
+    # ── PHASE 3: Historical Tracking & Scorecard ──
+    logger.info("\n📈 PHASE 3: Loading historical accuracy...")
     today = datetime.now().strftime("%Y-%m-%d")
 
-    history.save_recommendations(today, analyst_results, data.get("market_data", {}))
+    # Load scorecard from prior history BEFORE aggregation so it can weight opinions
     scorecard = history.get_analyst_scorecard(
         lookback_days=config.get("history", {}).get("accuracy_lookback_days", 30)
     )
@@ -167,6 +160,16 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
         logger.info("  Analyst scorecard:")
         for analyst, sc in scorecard.items():
             logger.info(f"    {analyst}: {sc['accuracy_pct']}% accuracy ({sc['total']} picks)")
+
+    # Save today's recommendations
+    history.save_recommendations(today, analyst_results, data.get("market_data", {}))
+
+    # ── PHASE 4: Aggregation (accuracy-weighted) ──
+    logger.info("\n📋 PHASE 4: Aggregating analyst opinions (weighted by accuracy + conviction)...")
+    aggregated = aggregator.aggregate(analyst_results, market_briefing, scorecard=scorecard)
+    consensus_buys = len(aggregated.get("consensus_buys", []))
+    consensus_sells = len(aggregated.get("consensus_sells", []))
+    logger.info(f"  Consensus buys: {consensus_buys}, sells: {consensus_sells}")
 
     # ── PHASE 5: Report Generation & Delivery ──
     logger.info("\n📧 PHASE 5: Generating and sending report...")

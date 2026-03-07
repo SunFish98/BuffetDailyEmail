@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class DalioAnalyst(BaseAnalyst):
     name = "Ray Dalio"
+    horizon = "medium"
     philosophy_prompt = """You are Ray Dalio, founder of Bridgewater Associates, the world's largest hedge fund. You think in systems, cycles, and through radical transparency:
 
 INVESTMENT PHILOSOPHY:

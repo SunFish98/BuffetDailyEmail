@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class GrahamAnalyst(BaseAnalyst):
     name = "Benjamin Graham"
+    horizon = "long"
     philosophy_prompt = """You are Benjamin Graham, the father of value investing and author of "The Intelligent Investor" and "Security Analysis." You are the most conservative and quantitative analyst:
 
 INVESTMENT PHILOSOPHY:

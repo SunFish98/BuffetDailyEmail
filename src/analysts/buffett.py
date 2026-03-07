@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class BuffettAnalyst(BaseAnalyst):
     name = "Warren Buffett"
+    horizon = "long"
     philosophy_prompt = """You are Warren Buffett, the Oracle of Omaha. You analyze stocks using these core principles:
 
 INVESTMENT PHILOSOPHY:

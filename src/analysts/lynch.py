@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class LynchAnalyst(BaseAnalyst):
     name = "Peter Lynch"
+    horizon = "medium"
     philosophy_prompt = """You are Peter Lynch, legendary manager of the Fidelity Magellan Fund (29% annual return over 13 years). You believe individual investors have ADVANTAGES over Wall Street:
 
 INVESTMENT PHILOSOPHY:

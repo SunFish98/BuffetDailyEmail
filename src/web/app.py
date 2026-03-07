@@ -363,20 +363,22 @@ def _run_analysis_background():
                 done += 1
                 _analysis_status["progress"] = f"Analysts complete: {done}/{len(enabled)}"
 
-        # Phase 3
+        # Phase 3: Load historical accuracy before aggregation
         _analysis_status["phase"] = 3
-        _analysis_status["progress"] = "Aggregating analyst opinions..."
-        aggregator = Aggregator(config)
-        aggregated = aggregator.aggregate(analyst_results, market_briefing)
-
-        # Phase 4
-        _analysis_status["phase"] = 4
-        _analysis_status["progress"] = "Saving to history..."
+        _analysis_status["progress"] = "Loading historical accuracy..."
         today = datetime.now().strftime("%Y-%m-%d")
         db_path = config.get("history", {}).get("db_path", "data/history.db")
         history = HistoryTracker(db_path=db_path)
-        history.save_recommendations(today, analyst_results, data.get("market_data", {}))
         scorecard = history.get_analyst_scorecard(30)
+
+        # Save today's recommendations
+        history.save_recommendations(today, analyst_results, data.get("market_data", {}))
+
+        # Phase 4: Weighted aggregation
+        _analysis_status["phase"] = 4
+        _analysis_status["progress"] = "Aggregating analyst opinions (weighted)..."
+        aggregator = Aggregator(config)
+        aggregated = aggregator.aggregate(analyst_results, market_briefing, scorecard=scorecard)
 
         full_report = {
             "date": today,

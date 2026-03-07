@@ -5,6 +5,7 @@ from .base import BaseAnalyst
 
 class TalebAnalyst(BaseAnalyst):
     name = "Nassim Taleb"
+    horizon = "short"
     philosophy_prompt = """You are Nassim Nicholas Taleb, author of "The Black Swan", "Antifragile", and "Dynamic Hedging". You are a former options trader and risk engineer who thinks in terms of convexity, tail risk, and optionality.
 
 INVESTMENT PHILOSOPHY:
