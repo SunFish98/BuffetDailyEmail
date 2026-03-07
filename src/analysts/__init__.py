@@ -6,6 +6,7 @@ from .lynch import LynchAnalyst
 from .dalio import DalioAnalyst
 from .icahn import IcahnAnalyst
 from .graham import GrahamAnalyst
+from .taleb import TalebAnalyst
 
 ALL_ANALYSTS = [
     BuffettAnalyst,
@@ -15,6 +16,7 @@ ALL_ANALYSTS = [
     DalioAnalyst,
     IcahnAnalyst,
     GrahamAnalyst,
+    TalebAnalyst,
 ]
 
 # Mapping from config key to analyst class
@@ -26,6 +28,7 @@ ANALYST_REGISTRY = {
     "ray_dalio": DalioAnalyst,
     "carl_icahn": IcahnAnalyst,
     "benjamin_graham": GrahamAnalyst,
+    "nassim_taleb": TalebAnalyst,
 }
 
 
@@ -56,6 +59,7 @@ __all__ = [
     "DalioAnalyst",
     "IcahnAnalyst",
     "GrahamAnalyst",
+    "TalebAnalyst",
     "ALL_ANALYSTS",
     "ANALYST_REGISTRY",
     "get_enabled_analysts",

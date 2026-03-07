@@ -128,6 +128,7 @@ ANALYST_INFO = {
     "ray_dalio": {"name": "Ray Dalio", "short": "Cycles + Risk Parity", "icon": "RD"},
     "carl_icahn": {"name": "Carl Icahn", "short": "Activist + Governance", "icon": "CI"},
     "benjamin_graham": {"name": "Benjamin Graham", "short": "Deep Value + Safety", "icon": "BG"},
+    "nassim_taleb": {"name": "Nassim Taleb", "short": "Tail Risk + Optionality", "icon": "NT"},
 }
 
 # ══════════════════════════════════════════
@@ -153,7 +154,7 @@ def dashboard():
                            env_vars["ANTHROPIC_API_KEY"] != "your_anthropic_api_key_here")
 
     enabled = config.get("analysts", {}).get("enabled")
-    enabled_count = len(enabled) if enabled else 7
+    enabled_count = len(enabled) if enabled else len(ANALYST_INFO)
     watchlist = config.get("watchlist", [])
 
     return render_template(
@@ -229,7 +230,7 @@ def _handle_setup_save():
 
     # Analysts
     enabled_analysts = request.form.getlist("analysts")
-    if enabled_analysts and len(enabled_analysts) < 7:
+    if enabled_analysts and len(enabled_analysts) < len(ANALYST_INFO):
         config.setdefault("analysts", {})["enabled"] = enabled_analysts
     else:
         # All selected = remove the key so all run
