@@ -210,6 +210,82 @@ def main(config_path: str = "config/settings.yaml", skip_email: bool = False,
     return full_report
 
 
+def backtest(config_path: str = "config/settings.yaml",
+             lookback_days: int = 90,
+             starting_capital: float = 100_000,
+             analyst_filter: list[str] | None = None):
+    """Run a backtest over historical recommendations.
+
+    Args:
+        config_path: Path to the settings.yaml config file.
+        lookback_days: How many days of history to test.
+        starting_capital: Paper trading starting capital.
+        analyst_filter: Only test these analysts (None = all).
+    """
+    load_dotenv()
+    config = load_config(config_path)
+    db_path = config.get("history", {}).get("db_path", "data/history.db")
+
+    from .backtester import Backtester
+
+    bt = Backtester(
+        db_path=db_path,
+        starting_capital=starting_capital,
+    )
+
+    logger.info("=" * 60)
+    logger.info("SICA — Backtester")
+    logger.info(f"Lookback: {lookback_days} days | Capital: ${starting_capital:,.0f}")
+    if analyst_filter:
+        logger.info(f"Analysts: {', '.join(analyst_filter)}")
+    logger.info("=" * 60)
+
+    results = bt.run(lookback_days=lookback_days, analyst_filter=analyst_filter)
+
+    if "error" in results:
+        logger.error(f"Backtest failed: {results['error']}")
+        return results
+
+    m = results["metrics"]
+    logger.info("\n" + "=" * 60)
+    logger.info("BACKTEST RESULTS")
+    logger.info("=" * 60)
+    logger.info(f"  Period: {m['period']['start']} to {m['period']['end']} ({m['period']['trading_days']} days)")
+    logger.info(f"  Starting Capital:  ${m['starting_capital']:>12,.2f}")
+    logger.info(f"  Ending Value:      ${m['ending_value']:>12,.2f}")
+    logger.info(f"  Total Return:      {m['total_return_pct']:>11.2f}%")
+    if m.get("benchmark_return_pct") is not None:
+        logger.info(f"  SPY Benchmark:     {m['benchmark_return_pct']:>11.2f}%")
+        logger.info(f"  Alpha:             {m['alpha']:>11.2f}%")
+    logger.info(f"  Max Drawdown:      {m['max_drawdown_pct']:>11.2f}%")
+    logger.info(f"  Sharpe Ratio:      {m['sharpe_ratio']:>11.2f}")
+    logger.info(f"  Total Trades:      {m['total_trades']:>8d}")
+    logger.info(f"  Win Rate:          {m['win_rate']:>11.1f}%")
+    logger.info(f"  Avg Trade Return:  {m['avg_trade_return']:>11.2f}%")
+
+    if m.get("best_trade"):
+        logger.info(f"  Best Trade:        {m['best_trade']['ticker']} +{m['best_trade']['return_pct']}% ({m['best_trade']['analyst']})")
+    if m.get("worst_trade"):
+        logger.info(f"  Worst Trade:       {m['worst_trade']['ticker']} {m['worst_trade']['return_pct']}% ({m['worst_trade']['analyst']})")
+
+    if m.get("analyst_breakdown"):
+        logger.info("\n  Per-Analyst P&L:")
+        for analyst, data in sorted(m["analyst_breakdown"].items(), key=lambda x: x[1]["pnl"], reverse=True):
+            logger.info(f"    {analyst:20s}  ${data['pnl']:>10,.2f}  ({data['trades']} trades, {data['win_rate']}% win)")
+
+    logger.info("=" * 60)
+
+    # Save results to JSON
+    import json
+    os.makedirs("data", exist_ok=True)
+    out_path = "data/backtest_results.json"
+    with open(out_path, "w") as f:
+        json.dump(results, f, indent=2, default=str)
+    logger.info(f"Full results saved to {out_path}")
+
+    return results
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -218,18 +294,50 @@ if __name__ == "__main__":
         epilog="Analyst keys: warren_buffett, charlie_munger, george_soros, "
                "peter_lynch, ray_dalio, carl_icahn, benjamin_graham",
     )
+    sub = parser.add_subparsers(dest="command")
+
+    # Default: run the analysis pipeline
+    run_parser = sub.add_parser("run", help="Run daily analysis (default)")
+    run_parser.add_argument("--config", default="config/settings.yaml", help="Path to config file")
+    run_parser.add_argument("--skip-email", action="store_true", help="Skip sending email")
+    run_parser.add_argument("--no-save", action="store_true", help="Don't save report files")
+    run_parser.add_argument(
+        "--analysts", nargs="+", metavar="KEY", default=None,
+        help="Run only these analysts",
+    )
+
+    # Backtest subcommand
+    bt_parser = sub.add_parser("backtest", help="Backtest historical recommendations")
+    bt_parser.add_argument("--config", default="config/settings.yaml", help="Path to config file")
+    bt_parser.add_argument("--days", type=int, default=90, help="Lookback period in days (default: 90)")
+    bt_parser.add_argument("--capital", type=float, default=100_000, help="Starting capital (default: 100000)")
+    bt_parser.add_argument(
+        "--analysts", nargs="+", metavar="NAME", default=None,
+        help="Filter by analyst name (e.g. --analysts 'Warren Buffett' 'George Soros')",
+    )
+
+    # Also support running without subcommand (backwards compat)
     parser.add_argument("--config", default="config/settings.yaml", help="Path to config file")
     parser.add_argument("--skip-email", action="store_true", help="Skip sending email")
     parser.add_argument("--no-save", action="store_true", help="Don't save report files")
     parser.add_argument(
         "--analysts", nargs="+", metavar="KEY", default=None,
-        help="Run only these analysts (e.g. --analysts warren_buffett benjamin_graham)",
+        help="Run only these analysts",
     )
+
     args = parser.parse_args()
 
-    main(
-        config_path=args.config,
-        skip_email=args.skip_email,
-        save_report=not args.no_save,
-        analysts_override=args.analysts,
-    )
+    if args.command == "backtest":
+        backtest(
+            config_path=args.config,
+            lookback_days=args.days,
+            starting_capital=args.capital,
+            analyst_filter=args.analysts,
+        )
+    else:
+        main(
+            config_path=args.config,
+            skip_email=args.skip_email,
+            save_report=not args.no_save,
+            analysts_override=args.analysts,
+        )

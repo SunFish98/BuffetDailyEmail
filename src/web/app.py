@@ -412,6 +412,68 @@ def _run_analysis_background():
         _analysis_status["running"] = False
 
 
+# ── Backtest endpoint ──
+_backtest_status = {"running": False, "result": None, "error": None}
+
+
+@app.route("/api/backtest", methods=["POST"])
+def api_backtest():
+    """Run a backtest. Accepts JSON body with optional params:
+    - days (int): lookback period, default 90
+    - capital (float): starting capital, default 100000
+    - analysts (list[str]): filter by analyst name
+    """
+    global _backtest_status
+    if _backtest_status["running"]:
+        return jsonify({"error": "Backtest already running"}), 409
+
+    data = request.get_json(silent=True) or {}
+    days = data.get("days", 90)
+    capital = data.get("capital", 100_000)
+    analysts = data.get("analysts")
+
+    _backtest_status = {"running": True, "result": None, "error": None}
+
+    def _run():
+        global _backtest_status
+        try:
+            config = _load_config()
+            db_path = config.get("history", {}).get("db_path", "data/history.db")
+
+            from ..backtester import Backtester
+            bt = Backtester(db_path=db_path, starting_capital=capital)
+            result = bt.run(lookback_days=days, analyst_filter=analysts)
+            _backtest_status["result"] = result
+        except Exception as e:
+            logger.error(f"Backtest failed: {e}")
+            _backtest_status["error"] = str(e)
+        finally:
+            _backtest_status["running"] = False
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return jsonify({"status": "started", "days": days, "capital": capital})
+
+
+@app.route("/api/backtest/status")
+def api_backtest_status():
+    """Poll backtest progress."""
+    return jsonify(_backtest_status)
+
+
+@app.route("/api/backtest/results")
+def api_backtest_results():
+    """Get the last backtest results."""
+    if _backtest_status["result"]:
+        return jsonify(_backtest_status["result"])
+    elif _backtest_status["error"]:
+        return jsonify({"error": _backtest_status["error"]}), 500
+    elif _backtest_status["running"]:
+        return jsonify({"status": "running"}), 202
+    else:
+        return jsonify({"error": "No backtest has been run yet"}), 404
+
+
 def create_app():
     """Factory function for the Flask app."""
     return app
